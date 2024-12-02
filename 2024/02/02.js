@@ -3,29 +3,54 @@ const reports = require('fs').readFileSync('input.txt', 'utf-8')
     .split('\n')
     .map(line => line.split(' ').map(Number));
 
-function isOrdered(report) {
+function isOrderedWithoutNumber(report, skipIndex) {
     let ascending = true;
     let descending = true;
+    let prev = null;
     
-    // Loop through each level in a report checking if
-    // we're ascending or descending, return false early if not
-    for (let i = 1; i < report.length; i++) {
-        const diff = Math.abs(report[i] - report[i - 1]);
+    for (let i = 0; i < report.length; i++) {
+        if (i === skipIndex) continue;
         
-        // If difference is not between 1 and 3, neither condition can be true
-        if (diff < 1 || diff > 3) {
-            return false;
+        if (prev !== null) {
+            const diff = Math.abs(report[i] - prev);
+            if (diff < 1 || diff > 3) return false;
+            
+            if (report[i] <= prev) ascending = false;
+            if (report[i] >= prev) descending = false;
         }
-        
-        if (report[i] <= report[i - 1]) {
-            ascending = false;
-        }
-        if (report[i] >= report[i - 1]) {
-            descending = false;
-        }
+        prev = report[i];
     }
     
     return ascending || descending;
+}
+
+function isOrdered(report) {
+    // First check if the sequence is valid as-is
+    let ascending = true;
+    let descending = true;
+    
+    for (let i = 1; i < report.length; i++) {
+        const diff = Math.abs(report[i] - report[i - 1]);
+        if (diff < 1 || diff > 3) {
+            ascending = false;
+            descending = false;
+            break;
+        }
+        
+        if (report[i] <= report[i - 1]) ascending = false;
+        if (report[i] >= report[i - 1]) descending = false;
+    }
+    
+    if (ascending || descending) return true;
+    
+    // If not valid, try removing each number one at a time
+    for (let i = 0; i < report.length; i++) {
+        if (isOrderedWithoutNumber(report, i)) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 // Count our ordered reports
