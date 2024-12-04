@@ -11,49 +11,58 @@ function isValid(x, y, rows, cols) {
     return x >= 0 && x < rows && y >= 0 && y < cols;
 }
 
-// Function to check for "XMAS" starting at a position in a given direction
-function checkDirection(grid, startX, startY, dirX, dirY) {
-    const word = "XMAS";
+// Function to check if a diagonal forms "MAS" (in either direction)
+function checkDiagonal(grid, x1, y1, x2, y2) {
+    // Get the three characters along the diagonal
+    const chars = [
+        grid[x1][y1],
+        grid[(x1 + x2) / 2][(y1 + y2) / 2],
+        grid[x2][y2]
+    ];
+    
+    // Check if it forms "MAS" forwards or backwards
+    return (chars.join('') === 'MAS' || chars.join('') === 'SAM');
+}
+
+// Function to check for X-MAS pattern at a given position
+function checkXMASPattern(grid, centerX, centerY) {
     const rows = grid.length;
     const cols = grid[0].length;
     
-    for (let i = 0; i < word.length; i++) {
-        const x = startX + (dirX * i);
-        const y = startY + (dirY * i);
-        
-        if (!isValid(x, y, rows, cols) || grid[x][y] !== word[i]) {
-            return false;
-        }
+    // Check if we have enough space around the center point
+    if (!isValid(centerX - 1, centerY - 1, rows, cols) ||
+        !isValid(centerX - 1, centerY + 1, rows, cols) ||
+        !isValid(centerX + 1, centerY - 1, rows, cols) ||
+        !isValid(centerX + 1, centerY + 1, rows, cols)) {
+        return false;
     }
-    return true;
+    
+    // Check both diagonals (top-left to bottom-right and top-right to bottom-left)
+    const diagonal1 = checkDiagonal(grid, 
+        centerX - 1, centerY - 1,  // top-left
+        centerX + 1, centerY + 1   // bottom-right
+    );
+    
+    const diagonal2 = checkDiagonal(grid,
+        centerX - 1, centerY + 1,  // top-right
+        centerX + 1, centerY - 1   // bottom-left
+    );
+    
+    // Both diagonals must form valid MAS patterns
+    return diagonal1 && diagonal2;
 }
 
-// Main function to count all occurrences of "XMAS"
-function countXMAS(grid) {
+// Main function to count all X-MAS patterns
+function countXMASPatterns(grid) {
     const rows = grid.length;
     const cols = grid[0].length;
     let count = 0;
     
-    // All possible directions: horizontal, vertical, and diagonal
-    const directions = [
-        [0, 1],   // right
-        [0, -1],  // left
-        [1, 0],   // down
-        [-1, 0],  // up
-        [1, 1],   // down-right
-        [-1, -1], // up-left
-        [1, -1],  // down-left
-        [-1, 1]   // up-right
-    ];
-    
-    // Check each position as a potential starting point
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {
-            // Try each direction from this position
-            for (const [dirX, dirY] of directions) {
-                if (checkDirection(grid, i, j, dirX, dirY)) {
-                    count++;
-                }
+    // Check each position as a potential center point
+    for (let i = 1; i < rows - 1; i++) {
+        for (let j = 1; j < cols - 1; j++) {
+            if (checkXMASPattern(grid, i, j)) {
+                count++;
             }
         }
     }
@@ -62,5 +71,5 @@ function countXMAS(grid) {
 }
 
 // Get the result
-const result = countXMAS(grid);
-console.log(`Found ${result} occurrences of "XMAS" in the grid`);
+const result = countXMASPatterns(grid);
+console.log(`Found ${result} X-MAS patterns in the grid`);
