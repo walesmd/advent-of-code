@@ -1,12 +1,12 @@
 const fs = require('fs');
 
-function findGuardPath(input) {
-    const grid = input.split('\n').map(line => line.split(''));
-    const visited = new Set();
-    let startPos = null;
-    let direction = '^';
+const input = fs.readFileSync('input.txt', 'utf8').trim();
 
-    // Find starting position
+// Parse input and find guard's starting position
+function parseInput(input) {
+    const grid = input.split('\n').map(line => line.split(''));
+    let startPos = null;
+
     for (let y = 0; y < grid.length; y++) {
         for (let x = 0; x < grid[y].length; x++) {
             if (grid[y][x] === '^') {
@@ -18,45 +18,119 @@ function findGuardPath(input) {
         if (startPos) break;
     }
 
-    if (!startPos) return 0;
+    return { grid, startPos };
+}
 
+// Track guard's movement and detect loops
+function simulateGuard(grid, startPos, debug = false) {
     const directions = {
-        '^': { dx: 0, dy: -1, right: '>' },
-        '>': { dx: 1, dy: 0, right: 'v' },
-        'v': { dx: 0, dy: 1, right: '<' },
-        '<': { dx: -1, dy: 0, right: '^' }
+        0: { dx: 0, dy: -1 },  // Up
+        1: { dx: 1, dy: 0 },   // Right
+        2: { dx: 0, dy: 1 },   // Down
+        3: { dx: -1, dy: 0 }   // Left
     };
 
-    let currentPos = { ...startPos };
-    visited.add(`${currentPos.x},${currentPos.y}`);
+    let pos = { ...startPos };
+    let dir = 0;  // Start facing up
+    const visited = new Set();
+    const states = new Set();
+    const path = [];
 
     while (true) {
-        const dir = directions[direction];
+        // Record current state (position + direction)
+        const state = `${pos.x},${pos.y},${dir}`;
+        if (states.has(state)) {
+            if (debug) {
+                console.log('Loop found!');
+                console.log('Path:', path);
+                console.log('Loop starts at:', state);
+            }
+            return { hasLoop: true, visited, path };
+        }
+        states.add(state);
+        visited.add(`${pos.x},${pos.y}`);
+        path.push({ x: pos.x, y: pos.y, dir });
+
+        // Check next position
         const nextPos = {
-            x: currentPos.x + dir.dx,
-            y: currentPos.y + dir.dy
+            x: pos.x + directions[dir].dx,
+            y: pos.y + directions[dir].dy
         };
 
-        // Check if next position is out of bounds
+        // Check if out of bounds
         if (nextPos.y < 0 || nextPos.y >= grid.length ||
             nextPos.x < 0 || nextPos.x >= grid[0].length) {
-            break;
+            return { hasLoop: false, visited, path };
         }
 
-        // Check if there's an obstacle ahead
+        // Check if obstacle ahead
         if (grid[nextPos.y][nextPos.x] === '#') {
-            // Turn right
-            direction = dir.right;
+            dir = (dir + 1) % 4;  // Turn right
         } else {
-            // Move forward
-            currentPos = nextPos;
-            visited.add(`${currentPos.x},${currentPos.y}`);
+            pos = nextPos;  // Move forward
+        }
+    }
+}
+
+function visualizePath(grid, path) {
+    const gridCopy = grid.map(row => [...row]);
+    const dirChars = {
+        0: '|',  // Up/Down
+        1: '-',  // Right
+        2: '|',  // Up/Down
+        3: '-'   // Left
+    };
+
+    path.forEach(({ x, y, dir }) => {
+        if (gridCopy[y][x] === '.') {
+            gridCopy[y][x] = dirChars[dir];
+        } else if (gridCopy[y][x] !== '#') {
+            gridCopy[y][x] = '+';
+        }
+    });
+
+    return gridCopy.map(row => row.join('')).join('\n');
+}
+
+function part2() {
+    const { grid, startPos } = parseInput(input);
+    let loopCount = 0;
+    let firstLoop = null;
+
+    // Try each empty position
+    for (let y = 0; y < grid.length; y++) {
+        for (let x = 0; x < grid[0].length; x++) {
+            // Skip if not empty or if it's the start position
+            if (grid[y][x] !== '.' || (x === startPos.x && y === startPos.y)) {
+                continue;
+            }
+
+            // Try placing obstacle
+            grid[y][x] = '#';
+            const result = simulateGuard(grid, startPos, false);
+            if (result.hasLoop) {
+                loopCount++;
+                if (!firstLoop) {
+                    firstLoop = {
+                        x,
+                        y,
+                        path: result.path,
+                        grid: grid.map(row => [...row])
+                    };
+                }
+            }
+            grid[y][x] = '.';  // Remove obstacle
         }
     }
 
-    return visited.size;
+    if (firstLoop) {
+        console.log('\nExample of a loop found:');
+        console.log(`Obstacle placed at: (${firstLoop.x}, ${firstLoop.y})`);
+        console.log('\nPath visualization:');
+        console.log(visualizePath(firstLoop.grid, firstLoop.path));
+    }
+
+    return loopCount;
 }
 
-// Read input and solve
-const input = fs.readFileSync('input.txt', 'utf8').trim();
-console.log(findGuardPath(input));
+console.log('Part 2:', part2());
