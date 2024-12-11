@@ -14,7 +14,7 @@ const input = fs.readFileSync('input.txt', 'utf8')
 
 // Generate all possible combinations of operators
 function generateOperatorCombinations(length) {
-    const operators = ['+', '*'];
+    const operators = ['+', '*', '||'];  
     const combinations = [];
     const generate = (current) => {
         if (current.length === length - 1) {
@@ -35,10 +35,13 @@ function evaluateExpression(numbers, operators) {
     for (let i = 0; i < operators.length; i++) {
         const operator = operators[i];
         const nextNum = numbers[i + 1];
+        
         if (operator === '+') {
             result += nextNum;
-        } else {
+        } else if (operator === '*') {
             result *= nextNum;
+        } else if (operator === '||') {
+            result = parseInt(result.toString() + nextNum.toString());
         }
     }
     return result;
@@ -58,4 +61,4 @@ for (const equation of input) {
     }
 }
 
-console.log('Total calibration result:', totalCalibration);
+console.log('Total calibration result (Part 2):', totalCalibration);
