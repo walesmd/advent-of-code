@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-input_file = 'input.txt'
+input_file = './input.txt'
 position = 50
 count = 0
 
